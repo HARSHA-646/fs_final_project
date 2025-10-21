@@ -4,11 +4,13 @@ import App from "./App.jsx";
 // set global axios defaults so every component uses same base URL
 import axios from "axios";
 
-const BACKEND =
-  import.meta?.env?.VITE_API_URL || process.env.REACT_APP_BACKEND_URL || "";
-
-axios.defaults.baseURL = BACKEND;       // e.g. https://fsfinalproject-production.up.railway.app
-axios.defaults.withCredentials = true;  // send cookies on cross-site requests
+const BACKEND = import.meta.env.VITE_API_URL || "https://fsfinalproject-production.up.railway.app";
+// ensure no trailing slash
+const trimmed = BACKEND.replace(/\/+$/, "");
+// Option 1: If your request paths include "/api/v1/..."
+axios.defaults.baseURL = trimmed;
+axios.defaults.withCredentials = true;
+  // send cookies on cross-site requests
 
 // add these near the top of src/main.jsx
 
