@@ -36,6 +36,14 @@ app.use(
   })
 );
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Backend API is running successfully 🚀",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ✅ API routes
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/job", jobRouter);
