@@ -1,76 +1,74 @@
-// src/components/Layout/Navbar.jsx
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
+import { Context } from "../../main";
 import { Link, useNavigate } from "react-router-dom";
-import { Context } from "../../main"; // ✅ FIXED PATH
 import axios from "axios";
 import toast from "react-hot-toast";
+import { GiHamburgerMenu } from "react-icons/gi";
+import { AiOutlineClose } from "react-icons/ai"; // Import the close icon
 
 const Navbar = () => {
-  const { isAuthorized, setIsAuthorized, user, setUser } = useContext(Context);
-  const navigate = useNavigate();
+  const [show, setShow] = useState(false);
+  const { isAuthorized, setIsAuthorized, user } = useContext(Context);
+  const navigateTo = useNavigate();
 
   const handleLogout = async () => {
     try {
-      // IMPORTANT: main.jsx sets axios.defaults.baseURL = `${BACKEND}/api/v1`
-      await axios.get("/user/logout", { withCredentials: true });
-      toast.success("Logged out successfully!");
+      // ✅ FIXED: removed duplicate /api/v1
+      const response = await axios.get("/user/logout", {
+        withCredentials: true,
+      });
+      toast.success(response.data.message);
       setIsAuthorized(false);
-      setUser(null);
-      navigate("/login");
+      navigateTo("/login");
     } catch (error) {
-      console.error("Logout failed:", error);
-      toast.error(error?.response?.data?.message || "Logout failed.");
+      toast.error(error?.response?.data?.message || "Logout failed");
+      setIsAuthorized(true);
     }
   };
 
   return (
-    <nav className="navbar">
-      <div className="nav-container">
-        <Link to="/" className="nav-logo">
-          CareerConnect
-        </Link>
-
-        <ul className="nav-links">
+    <nav className={isAuthorized ? "navbarShow" : "navbarHide"}>
+      <div className="container">
+        <div className="logo">
+          <img src="/careerconnect-white.png" alt="logo" />
+        </div>
+        <ul className={!show ? "menu" : "show-menu menu"}>
           <li>
-            <Link to="/">Home</Link>
+            <Link to={"/"} onClick={() => setShow(false)}>
+              HOME
+            </Link>
           </li>
           <li>
-            <Link to="/job/getall">Jobs</Link>
+            <Link to={"/job/getall"} onClick={() => setShow(false)}>
+              ALL JOBS
+            </Link>
           </li>
-
-          {isAuthorized && user?.role === "Employer" && (
+          <li>
+            <Link to={"/applications/me"} onClick={() => setShow(false)}>
+              {user && user.role === "Employer"
+                ? "APPLICANT'S APPLICATIONS"
+                : "MY APPLICATIONS"}
+            </Link>
+          </li>
+          {user && user.role === "Employer" ? (
             <>
               <li>
-                <Link to="/job/post">Post Job</Link>
+                <Link to={"/job/post"} onClick={() => setShow(false)}>
+                  POST NEW JOB
+                </Link>
               </li>
               <li>
-                <Link to="/job/me">My Jobs</Link>
+                <Link to={"/job/me"} onClick={() => setShow(false)}>
+                  VIEW YOUR JOBS
+                </Link>
               </li>
             </>
-          )}
+          ) : null}
 
-          {isAuthorized && user?.role === "Job Seeker" && (
-            <li>
-              <Link to="/applications/me">My Applications</Link>
-            </li>
-          )}
+          <button onClick={handleLogout}>LOGOUT</button>
         </ul>
-
-        <div className="nav-auth">
-          {isAuthorized ? (
-            <button onClick={handleLogout} className="logout-btn">
-              Logout
-            </button>
-          ) : (
-            <>
-              <Link to="/login" className="login-btn">
-                Login
-              </Link>
-              <Link to="/register" className="register-btn">
-                Register
-              </Link>
-            </>
-          )}
+        <div className="hamburger" onClick={() => setShow(!show)}>
+          {show ? <AiOutlineClose /> : <GiHamburgerMenu />}
         </div>
       </div>
     </nav>

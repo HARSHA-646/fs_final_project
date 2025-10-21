@@ -236,3 +236,4 @@ const EmployerCard = ({ element, openModal }) => {
     </div>
   );
 };
+

@@ -99,7 +99,7 @@ const PostJob = () => {
         : { title, description, category, country, city, location, salaryFrom, salaryTo };
 
     try {
-      const res = await axios.post("/api/v1/job/post", payload, {
+      const res = await axios.post("\/job/post", payload, {
         withCredentials: true,
         headers: { "Content-Type": "application/json" },
       });
@@ -216,3 +216,4 @@ const PostJob = () => {
 };
 
 export default PostJob;
+

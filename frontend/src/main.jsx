@@ -4,23 +4,12 @@ import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import axios from "axios";
 
-/**
- * NOTE:
- * - Keep VITE_API_URL in .env as: VITE_API_URL=https://your-backend.example.com
- * - This code trims trailing slashes, then appends /api/v1 so component endpoints can use short paths like "/user/login".
- */
-
-// read backend base from env (fallback provided)
 const BACKEND = import.meta.env.VITE_API_URL || "https://fsfinalproject-production.up.railway.app";
-// trim any trailing slashes
 const trimmed = BACKEND.replace(/\/+$/, "");
 
-// === Centralized axios defaults ===
-// Set baseURL to trimmed + '/api/v1' so components call endpoints like "/user/login"
-axios.defaults.baseURL = `${trimmed}/api/v1`;
-// If your backend uses cookies/sessions, keep withCredentials true
+// <<< FIX: do NOT append /api/v1 here (Option A) >>>
+axios.defaults.baseURL = "https://fsfinalproject-production.up.railway.app";
 axios.defaults.withCredentials = true;
-// Common accept header (optional)
 axios.defaults.headers.common["Accept"] = "application/json";
 
 export const Context = createContext({
@@ -53,3 +42,4 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <AppWrapper />
   </React.StrictMode>
 );
+

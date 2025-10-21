@@ -19,7 +19,7 @@ const Jobs = () => {
     const fetchJobs = async () => {
       try {
         // Include '/api/v1' here since baseURL is just the origin
-        const res = await axios.get("/api/v1/job/getall", {
+        const res = await axios.get("\/job/getall", {
           withCredentials: true, // include cookies if needed for auth
         });
         setJobs(res.data);
@@ -64,3 +64,4 @@ const Jobs = () => {
 };
 
 export default Jobs;
+
