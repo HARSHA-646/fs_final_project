@@ -14,3 +14,4 @@ const ResumeModal = ({ imageUrl, onClose }) => {
 };
 
 export default ResumeModal;
+
