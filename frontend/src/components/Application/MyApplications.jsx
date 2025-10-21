@@ -198,3 +198,4 @@ const EmployerCard = ({ element, openModal }) => {
   );
 };
 
+
