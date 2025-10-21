@@ -78,7 +78,7 @@ Contributions are what make the open-source community such an amazing place to l
 
 ## Contact
 
-Abhishek Rajput - [GitHub](https://github.com/exclusiveabhi)
+Harshavardhan - [GitHub](github.com/HARSHA-646)
 
-Project Link: [https://github.com/exclusiveabhi/react-job-portal.git](https://github.com/exclusiveabhi/react-job-portal.git)
+Project Link: [https://github.com/HARSHA-646/fs_final_project)
 "# fs_final_project" 
