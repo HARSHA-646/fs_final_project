@@ -1,65 +1,80 @@
-import React, { useContext, useEffect } from "react";
-import "./App.css";
-import { Context } from "./main";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Login from "./components/Auth/Login";
-import Register from "./components/Auth/Register";
-import { Toaster } from "react-hot-toast";
+// src/components/Layout/Navbar.jsx
+import React, { useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Context } from "../../main"; // ✅ FIXED PATH
 import axios from "axios";
-import Navbar from "./components/Layout/Navbar";
-import Footer from "./components/Layout/Footer";
-import Home from "./components/Home/Home";
-import Jobs from "./components/Job/Jobs";
-import JobDetails from "./components/Job/JobDetails";
-import Application from "./components/Application/Application";
-import MyApplications from "./components/Application/MyApplications";
-import PostJob from "./components/Job/PostJob";
-import NotFound from "./components/NotFound/NotFound";
-import MyJobs from "./components/Job/MyJobs";
+import toast from "react-hot-toast";
 
-const App = () => {
-  const { isAuthorized, setIsAuthorized, setUser } = useContext(Context);
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await axios.get(
-          "/api/v1/user/getuser",
-          {
-            withCredentials: true,
-          }
-        );
-        setUser(response.data.user);
-        setIsAuthorized(true);
-      } catch (error) {
-        setIsAuthorized(false);
-      }
-    };
-    fetchUser();
-  }, [isAuthorized]);
+const Navbar = () => {
+  const { isAuthorized, setIsAuthorized, user, setUser } = useContext(Context);
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      // IMPORTANT: main.jsx sets axios.defaults.baseURL = `${BACKEND}/api/v1`
+      await axios.get("/user/logout", { withCredentials: true });
+      toast.success("Logged out successfully!");
+      setIsAuthorized(false);
+      setUser(null);
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast.error(error?.response?.data?.message || "Logout failed.");
+    }
+  };
 
   return (
-    <>
-      <BrowserRouter>
-        <Navbar />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/" element={<Home />} />
-          <Route path="/job/getall" element={<Jobs />} />
-          <Route path="/job/:id" element={<JobDetails />} />
-          <Route path="/application/:id" element={<Application />} />
-          <Route path="/applications/me" element={<MyApplications />} />
-          <Route path="/job/post" element={<PostJob />} />
-          <Route path="/job/me" element={<MyJobs />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Footer />
-        <Toaster />
-      </BrowserRouter>
-    </>
+    <nav className="navbar">
+      <div className="nav-container">
+        <Link to="/" className="nav-logo">
+          CareerConnect
+        </Link>
+
+        <ul className="nav-links">
+          <li>
+            <Link to="/">Home</Link>
+          </li>
+          <li>
+            <Link to="/job/getall">Jobs</Link>
+          </li>
+
+          {isAuthorized && user?.role === "Employer" && (
+            <>
+              <li>
+                <Link to="/job/post">Post Job</Link>
+              </li>
+              <li>
+                <Link to="/job/me">My Jobs</Link>
+              </li>
+            </>
+          )}
+
+          {isAuthorized && user?.role === "Job Seeker" && (
+            <li>
+              <Link to="/applications/me">My Applications</Link>
+            </li>
+          )}
+        </ul>
+
+        <div className="nav-auth">
+          {isAuthorized ? (
+            <button onClick={handleLogout} className="logout-btn">
+              Logout
+            </button>
+          ) : (
+            <>
+              <Link to="/login" className="login-btn">
+                Login
+              </Link>
+              <Link to="/register" className="register-btn">
+                Register
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
   );
 };
 
-export default App;
-
-
+export default Navbar;
