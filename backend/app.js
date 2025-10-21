@@ -13,6 +13,7 @@ import fileUpload from "express-fileupload";
 config({ path: "./config/config.env" });
 
 const app = express();
+app.set("trust proxy", 1); 
 
 // ✅ CORS setup
 app.use(

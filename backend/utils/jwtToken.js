@@ -2,7 +2,7 @@
 import jwt from "jsonwebtoken";
 
 /**
- * createToken(userId) -> token string
+ * Create JWT token for a user
  */
 export const createToken = (userId) => {
   const secret = process.env.JWT_SECRET_KEY || "change_this_secret";
@@ -11,50 +11,44 @@ export const createToken = (userId) => {
 };
 
 /**
- * sendToken(user, statusCode, res, message)
- * - signs a token, removes password from returned user object and sends JSON response
- * - message is optional
+ * Send token in JSON (for internal usage)
  */
 export const sendToken = (user, statusCode, res, message = null) => {
   const token = createToken(user._id ? user._id : user.id);
-
-  // Remove password from user object before sending
   const userSafe = user._doc ? { ...user._doc } : { ...user };
   if (userSafe.password) delete userSafe.password;
 
-  const payload = {
-    success: true,
-    token,
-    user: userSafe,
-  };
+  const payload = { success: true, token, user: userSafe };
   if (message) payload.message = message;
 
   return res.status(statusCode).json(payload);
 };
 
 /**
- * sendCookieToken(user, statusCode, res, message)
- * - optional helper to set token in httpOnly cookie and respond
+ * Send token in a secure HTTP-only cookie (for production login/register)
  */
 export const sendCookieToken = (user, statusCode, res, message = null) => {
   const token = createToken(user._id ? user._id : user.id);
 
+  const maxAge = parseInt(process.env.COOKIE_EXPIRE || "7", 10) * 24 * 60 * 60 * 1000;
+
   const cookieOptions = {
     httpOnly: true,
-    expires: new Date(Date.now() + (parseInt(process.env.COOKIE_EXPIRE || "7", 10) * 24 * 60 * 60 * 1000)),
+    path: "/",
+    sameSite: "none",       // required for cross-site cookies (Netlify → Railway)
+    secure: process.env.NODE_ENV === "production", // HTTPS only in prod
+    expires: new Date(Date.now() + maxAge),
+    maxAge,
   };
-
-  if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
 
   const userSafe = user._doc ? { ...user._doc } : { ...user };
   if (userSafe.password) delete userSafe.password;
 
-  const payload = {
-    success: true,
-    token,
-    user: userSafe,
-  };
+  const payload = { success: true, user: userSafe, token };
   if (message) payload.message = message;
 
-  return res.status(statusCode).cookie("token", token, cookieOptions).json(payload);
+  return res
+    .status(statusCode)
+    .cookie("token", token, cookieOptions)
+    .json(payload);
 };
