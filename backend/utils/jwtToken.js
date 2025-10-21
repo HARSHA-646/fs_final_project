@@ -1,69 +1,60 @@
-import mongoose from "mongoose";
-import validator from "validator";
-import bcrypt from "bcryptjs"; // ✅ using bcryptjs (pure JS)
+// backend/utils/jwtToken.js
 import jwt from "jsonwebtoken";
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, "Please enter your Name!"],
-    minLength: [3, "Name must contain at least 3 Characters!"],
-    maxLength: [30, "Name cannot exceed 30 Characters!"],
-  },
-  email: {
-    type: String,
-    required: [true, "Please enter your Email!"],
-    validate: [validator.isEmail, "Please provide a valid Email!"],
-    unique: true, // ✅ optional but helps prevent duplicate emails
-  },
-  phone: {
-    type: Number,
-    required: [true, "Please enter your Phone Number!"],
-  },
-  password: {
-    type: String,
-    required: [true, "Please provide a Password!"],
-    minLength: [8, "Password must contain at least 8 characters!"],
-    maxLength: [32, "Password cannot exceed 32 characters!"],
-    select: false,
-  },
-  role: {
-    type: String,
-    required: [true, "Please select a role"],
-    enum: ["Job Seeker", "Employer"],
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
-
-// ✅ Encrypt the password before saving user document
-userSchema.pre("save", async function (next) {
-  // Only hash the password if it has been modified (or is new)
-  if (!this.isModified("password")) return next();
-
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
-
-// ✅ Compare entered password with stored hash
-userSchema.methods.comparePassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+/**
+ * createToken(userId) -> token string
+ */
+export const createToken = (userId) => {
+  const secret = process.env.JWT_SECRET_KEY || "change_this_secret";
+  const expiresIn = process.env.JWT_EXPIRE || "7d";
+  return jwt.sign({ id: userId }, secret, { expiresIn });
 };
 
-// ✅ Generate JWT token for authentication
-userSchema.methods.getJWTToken = function () {
-  return jwt.sign(
-    { id: this._id },
-    process.env.JWT_SECRET_KEY,
-    { expiresIn: process.env.JWT_EXPIRE }
-  );
+/**
+ * sendToken(user, statusCode, res, message)
+ * - signs a token, removes password from returned user object and sends JSON response
+ * - message is optional
+ */
+export const sendToken = (user, statusCode, res, message = null) => {
+  const token = createToken(user._id ? user._id : user.id);
+
+  // Remove password from user object before sending
+  const userSafe = user._doc ? { ...user._doc } : { ...user };
+  if (userSafe.password) delete userSafe.password;
+
+  const payload = {
+    success: true,
+    token,
+    user: userSafe,
+  };
+  if (message) payload.message = message;
+
+  return res.status(statusCode).json(payload);
 };
 
-export const User = mongoose.model("User", userSchema);
+/**
+ * sendCookieToken(user, statusCode, res, message)
+ * - optional helper to set token in httpOnly cookie and respond
+ */
+export const sendCookieToken = (user, statusCode, res, message = null) => {
+  const token = createToken(user._id ? user._id : user.id);
+
+  const cookieOptions = {
+    httpOnly: true,
+    expires: new Date(Date.now() + (parseInt(process.env.COOKIE_EXPIRE || "7", 10) * 24 * 60 * 60 * 1000)),
+  };
+
+  if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
+
+  const userSafe = user._doc ? { ...user._doc } : { ...user };
+  if (userSafe.password) delete userSafe.password;
+
+  const payload = {
+    success: true,
+    token,
+    user: userSafe,
+  };
+  if (message) payload.message = message;
+
+  return res.status(statusCode).cookie("token", token, cookieOptions).json(payload);
+};
