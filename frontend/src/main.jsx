@@ -2,15 +2,19 @@
 import React, { createContext, useState } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
+// src/main.jsx (replace the existing BACKEND/axios defaults part with this)
 import axios from "axios";
 
 const BACKEND = import.meta.env.VITE_API_URL || "https://fsfinalproject-production.up.railway.app";
-const trimmed = BACKEND.replace(/\/+$/, "");
 
-// <<< FIX: do NOT append /api/v1 here (Option A) >>>
-axios.defaults.baseURL = "https://fsfinalproject-production.up.railway.app";
-axios.defaults.withCredentials = true;
-axios.defaults.headers.common["Accept"] = "application/json";
+// Normalize and ensure the base URL **ends with /api/v1**
+let trimmed = BACKEND.replace(/\/+$/, "");            // remove trailing slash(es)
+if (!/\/api\/v1$/i.test(trimmed)) trimmed = trimmed + "/api/v1";
+
+console.log("SET AXIOS baseURL ->", trimmed);       // debug line you can remove later
+axios.defaults.baseURL = trimmed;                    // e.g. https://...railway.app/api/v1
+axios.defaults.withCredentials = true;               // send cookies on cross-site requests
+
 
 export const Context = createContext({
   isAuthorized: false,
