@@ -1,26 +1,38 @@
+// src/main.jsx
 import React, { createContext, useState } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
-// set global axios defaults so every component uses same base URL
 import axios from "axios";
 
-const BACKEND = import.meta.env.VITE_API_URL || "https://fsfinalproject-production.up.railway.app";
-// ensure no trailing slash
-const trimmed = BACKEND.replace(/\/+$/, "");
-// Option 1: If your request paths include "/api/v1/..."
-axios.defaults.baseURL = trimmed;
-axios.defaults.withCredentials = true;
-  // send cookies on cross-site requests
+/**
+ * NOTE:
+ * - Keep VITE_API_URL in .env as: VITE_API_URL=https://your-backend.example.com
+ * - This code trims trailing slashes, then appends /api/v1 so component endpoints can use short paths like "/user/login".
+ */
 
-// add these near the top of src/main.jsx
+// read backend base from env (fallback provided)
+const BACKEND = import.meta.env.VITE_API_URL || "https://fsfinalproject-production.up.railway.app";
+// trim any trailing slashes
+const trimmed = BACKEND.replace(/\/+$/, "");
+
+// === Centralized axios defaults ===
+// Set baseURL to trimmed + '/api/v1' so components call endpoints like "/user/login"
+axios.defaults.baseURL = `${trimmed}/api/v1`;
+// If your backend uses cookies/sessions, keep withCredentials true
+axios.defaults.withCredentials = true;
+// Common accept header (optional)
+axios.defaults.headers.common["Accept"] = "application/json";
 
 export const Context = createContext({
   isAuthorized: false,
+  setIsAuthorized: () => {},
+  user: null,
+  setUser: () => {},
 });
 
 const AppWrapper = () => {
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState(null);
 
   return (
     <Context.Provider
@@ -41,5 +53,3 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <AppWrapper />
   </React.StrictMode>
 );
-
-

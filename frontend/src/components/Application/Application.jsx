@@ -1,8 +1,9 @@
-// src/pages/Application.jsx
-import axios from "axios";
+// src/components/Application/Application.jsx
 import React, { useContext, useEffect, useRef, useState } from "react";
+import axios from "axios";
 import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
+// keep your existing Context import (adjust path only if your project exports Context elsewhere)
 import { Context } from "../../main";
 
 const Application = () => {
@@ -12,43 +13,48 @@ const Application = () => {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [resume, setResume] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const { isAuthorized, user } = useContext(Context);
-  const navigateTo = useNavigate();
-  const { id } = useParams();
+  const navigate = useNavigate();
+  const { id } = useParams(); // job id
   const fileRef = useRef();
 
-  // Redirect safely in effect
+  // safe redirect: if not authorized or role is Employer, send to home
   useEffect(() => {
     if (!isAuthorized || (user && user.role === "Employer")) {
-      navigateTo("/");
+      navigate("/");
     }
-  }, [isAuthorized, user, navigateTo]);
+  }, [isAuthorized, user, navigate]);
 
-  // Handle file selection
+  // file input validation
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
-      const maxSize = 5 * 1024 * 1024; // 5 MB
-
-      if (!allowedTypes.includes(file.type)) {
-        toast.error("Only PDF, JPG, or PNG files are allowed!");
-        e.target.value = ""; // reset invalid file selection
-        return;
-      }
-
-      if (file.size > maxSize) {
-        toast.error("File size must be under 5MB!");
-        e.target.value = "";
-        return;
-      }
-
-      setResume(file);
+    const file = e.target.files?.[0] ?? null;
+    if (!file) {
+      setResume(null);
+      return;
     }
+
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+    const maxSize = 5 * 1024 * 1024; // 5 MB
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only PDF, JPG, or PNG files are allowed!");
+      e.target.value = "";
+      setResume(null);
+      return;
+    }
+
+    if (file.size > maxSize) {
+      toast.error("File size must be under 5MB!");
+      e.target.value = "";
+      setResume(null);
+      return;
+    }
+
+    setResume(file);
   };
 
-  // Submit form
   const handleApplication = async (e) => {
     e.preventDefault();
 
@@ -57,32 +63,35 @@ const Application = () => {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("email", email);
-    formData.append("phone", phone);
-    formData.append("address", address);
-    formData.append("coverLetter", coverLetter);
-    formData.append("resume", resume); // MUST match multer field name
-    formData.append("jobId", id);
-
-    // Debug: inspect formData in console
-    console.log("Submitting application. resume state:", resume);
-    for (const pair of formData.entries()) {
-      console.log(pair[0], pair[1]);
-    }
+    setLoading(true);
 
     try {
-      const { data } = await axios.post(
-        "/api/v1/application/post",
-        formData,
-        {
-          withCredentials: true, // keep if you use cookies; otherwise remove
-          // axios will set Content-Type header with boundary automatically
-        }
-      );
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("email", email);
+      formData.append("phone", phone);
+      formData.append("address", address);
+      formData.append("coverLetter", coverLetter);
+      // ensure the backend multer field name is "resume"
+      formData.append("resume", resume);
+      if (id) formData.append("jobId", id);
 
-      // Clear inputs + file input DOM
+      // Debug logs (remove in production)
+      console.group("Application submit - formData preview");
+      for (const pair of formData.entries()) {
+        // note: file entry will print File object
+        console.log(pair[0], pair[1]);
+      }
+      console.groupEnd();
+
+      // IMPORTANT: axios.defaults.baseURL should be set in main.jsx to `${BACKEND}/api/v1`
+      // so component-level endpoints remain like "/application/post"
+      const { data } = await axios.post("/application/post", formData, {
+        // do NOT set Content-Type header manually for FormData
+        withCredentials: true, // keep if your backend uses cookies; otherwise this is harmless
+      });
+
+      // reset form on success
       setName("");
       setEmail("");
       setCoverLetter("");
@@ -91,13 +100,18 @@ const Application = () => {
       setResume(null);
       if (fileRef.current) fileRef.current.value = "";
 
-      toast.success(data.message || "Application submitted successfully!");
-      navigateTo("/job/getall");
+      toast.success(data?.message || "Application submitted successfully!");
+      // navigate to jobs list (adjust route as your app expects)
+      navigate("/job/getall");
     } catch (error) {
-      console.error("Upload error full:", error);
-      console.error("Upload error response data:", error?.response?.data);
-      const msg = error?.response?.data?.message || "Failed to upload file!";
+      console.error("Application submit error:", error);
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to submit application.";
       toast.error(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -105,6 +119,7 @@ const Application = () => {
     <section className="application">
       <div className="container">
         <h3>Application Form</h3>
+
         <form onSubmit={handleApplication}>
           <input
             type="text"
@@ -113,6 +128,7 @@ const Application = () => {
             onChange={(e) => setName(e.target.value)}
             required
           />
+
           <input
             type="email"
             placeholder="Your Email"
@@ -120,6 +136,7 @@ const Application = () => {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
+
           <input
             type="tel"
             placeholder="Your Phone Number"
@@ -127,6 +144,7 @@ const Application = () => {
             onChange={(e) => setPhone(e.target.value)}
             required
           />
+
           <input
             type="text"
             placeholder="Your Address"
@@ -134,12 +152,14 @@ const Application = () => {
             onChange={(e) => setAddress(e.target.value)}
             required
           />
+
           <textarea
             placeholder="Cover Letter..."
             value={coverLetter}
             onChange={(e) => setCoverLetter(e.target.value)}
           />
-          <div>
+
+          <div style={{ marginTop: "8px" }}>
             <label
               style={{ textAlign: "start", display: "block", fontSize: "18px" }}
             >
@@ -153,8 +173,16 @@ const Application = () => {
               onChange={handleFileChange}
               style={{ width: "100%" }}
             />
+            {resume && (
+              <div style={{ marginTop: 8 }}>
+                <small>Selected file: {resume.name}</small>
+              </div>
+            )}
           </div>
-          <button type="submit">Send Application</button>
+
+          <button type="submit" disabled={loading} style={{ marginTop: "12px" }}>
+            {loading ? "Sending..." : "Send Application"}
+          </button>
         </form>
       </div>
     </section>
@@ -162,5 +190,3 @@ const Application = () => {
 };
 
 export default Application;
-
-
